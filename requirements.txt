@@ -51,7 +51,6 @@ kiwisolver
 Markdown
 MarkupSafe
 matplotlib
-mediapipe
 ml_dtypes
 multidict
 numpy

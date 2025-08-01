@@ -89,7 +89,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://baazar-limited-1.onrender.com',
+    'https://room-booking-pjo6.onrender.com',
 ]
 
 ROOT_URLCONF = 'bookings.urls'
