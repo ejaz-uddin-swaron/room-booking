@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'django_extensions',
     'corsheaders',
     'accounts',
+    'rooms',
+    'core',
+    'bookings_app',
     'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
 ]
@@ -55,6 +58,8 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 SWAGGER_SETTINGS = {
@@ -123,16 +128,25 @@ WSGI_APPLICATION = 'bookings.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env("DB_NAME"),
-        'USER': env("DB_USER"),
-        'PASSWORD': env("DB_PASSWORD"),
-        'HOST': env("DB_HOST"),
-        'PORT': env("DB_PORT"),
+DB_NAME = env("DB_NAME", default=None)
+if DB_NAME:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DB_NAME,
+            'USER': env("DB_USER", default=""),
+            'PASSWORD': env("DB_PASSWORD", default=""),
+            'HOST': env("DB_HOST", default="localhost"),
+            'PORT': env("DB_PORT", default="5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -185,3 +199,18 @@ EMAIL_HOST_USER = env("EMAIL")
 EMAIL_HOST_PASSWORD = env("EMAIL_PASSWORD")
 
 FERNET_SECRET_KEY = os.environ.get("FERNET_SECRET_KEY")
+
+# Media / Uploads
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# File upload constraints (can be overridden by environment)
+MAX_FILE_SIZE = int(env("MAX_FILE_SIZE", default=5 * 1024 * 1024))  # 5MB
+ALLOWED_FILE_TYPES = set((env("ALLOWED_FILE_TYPES", default="jpg,jpeg,png,webp")).split(','))
+
+# SimpleJWT configuration (optional customizations)
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=int(env("JWT_EXPIRES_HOURS", default=24))),
+    'SIGNING_KEY': env("JWT_SECRET", default=SECRET_KEY),
+}

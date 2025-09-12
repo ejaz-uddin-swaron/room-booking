@@ -47,9 +47,12 @@ class UserRegistrationApiView(APIView):
             refresh = RefreshToken.for_user(user)
 
             return Response({
-                'message': 'Registration successful. Check your email.',
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
+                'success': True,
+                'data': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                },
+                'message': 'Registration successful. Check your email.'
             }, status=201)
 
         return Response(serializer.errors, status=400)
@@ -82,7 +85,27 @@ class CustomUserLoginView(TokenObtainPairView):
         )}
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200 and isinstance(response.data, dict):
+            # Wrap into { success, data }
+            data = response.data.copy()
+            token = data.pop('access', None)
+            refresh = data.pop('refresh', None)
+            user_payload = {
+                'id': data.pop('user_id', None),
+                'username': data.pop('username', None),
+                'role': data.pop('role', None)
+            }
+            wrapped = {
+                'success': True,
+                'data': {
+                    'token': token,
+                    'refresh': refresh,
+                    'user': user_payload,
+                }
+            }
+            response.data = wrapped
+        return response
     
 class UserLogoutView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -106,9 +129,9 @@ class UserLogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist() 
 
-            return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
+            return Response({'success': True, 'message': 'Logged out successfully'}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            return Response({"error": "Invalid token or already blacklisted"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'success': False, 'error': 'Invalid token or already blacklisted', 'status': 400}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class GetUserInfoByUsername(APIView):
