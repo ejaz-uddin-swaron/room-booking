@@ -11,7 +11,7 @@ class Room(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     rating = models.FloatField(default=0)
     reviews = models.IntegerField(default=0)
-    images = models.JSONField(default=list)  # list of image URLs
+    images = models.URLField(default=list)  # list of image URLs
     amenities = models.JSONField(default=list)  # list of strings
     description = models.TextField()
     location = models.CharField(max_length=255)
