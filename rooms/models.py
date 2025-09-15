@@ -17,7 +17,7 @@ class Room(models.Model):
     amenities = models.JSONField(default=list)  # list of strings
     description = models.TextField()
     location = models.CharField(max_length=255)
-    maxGuests = models.IntegerField()
+    max_guests = models.IntegerField()
     bedrooms = models.IntegerField()
     bathrooms = models.IntegerField()
     size = models.IntegerField()  # in square meters

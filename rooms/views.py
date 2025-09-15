@@ -28,7 +28,7 @@ class RoomListAPIView(generics.ListCreateAPIView):
 
         if guests:
             try:
-                queryset = queryset.filter(maxGuests__gte=int(guests))
+                queryset = queryset.filter(max_guests__gte=int(guests))
             except (TypeError, ValueError):
                 pass
 
