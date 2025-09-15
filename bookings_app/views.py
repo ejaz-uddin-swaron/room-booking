@@ -81,7 +81,8 @@ class BookingsView(APIView):
             room = Room.objects.get(id=room_id)
         except Room.DoesNotExist:
             return Response({'success': False, 'error': 'Room not found', 'status': 404}, status=404)
-        if int(guests) > room.maxGuests:
+
+        if int(guests) > room.max_guests:
             return Response({'success': False, 'error': 'Guest count exceeds room capacity', 'status': 422}, status=422)
 
         # Availability check (no overlaps)
