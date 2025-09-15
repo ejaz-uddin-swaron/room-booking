@@ -2,9 +2,8 @@ from django.db import models
 
 class Room(models.Model):
     ROOM_TYPES = (
-        ('villa', 'Villa'),
-        ('apartment', 'Apartment'),
-        ('suite', 'Suite'),
+        ('delux','Delux'),
+        ('double delux','Double Delux'),
     )
 
     name = models.CharField(max_length=255)
