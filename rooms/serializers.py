@@ -3,12 +3,20 @@ from .models import Room
 
 
 class RoomSerializer(serializers.ModelSerializer):
-    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
-    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    # createdAt/updatedAt are omitted because current schema doesn't have them in migration
+    images = serializers.SerializerMethodField()
+
+    def get_images(self, obj):
+        val = getattr(obj, 'images', None)
+        if isinstance(val, list):
+            return val
+        if isinstance(val, str) and val:
+            return [val]
+        return []
 
     class Meta:
         model = Room
         fields = [
             'id', 'name', 'type', 'price', 'rating', 'reviews', 'images', 'amenities', 'description',
-            'location', 'maxGuests', 'bedrooms', 'bathrooms', 'size', 'available', 'createdAt', 'updatedAt'
+            'location', 'maxGuests', 'bedrooms', 'bathrooms', 'size', 'available'
         ]

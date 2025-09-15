@@ -15,34 +15,44 @@ class RoomListAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Room.objects.all()
-
-        location = self.request.query_params.get('location')
-        check_in = self.request.query_params.get('check_in')  # not used yet
-        check_out = self.request.query_params.get('check_out')  # not used yet
-        guests = self.request.query_params.get('guests')
-        min_price = self.request.query_params.get('min_price')
-        max_price = self.request.query_params.get('max_price')
-        room_type = self.request.query_params.get('room_type')
-        amenities = self.request.query_params.getlist('amenities')
+        params = self.request.query_params
+        location = params.get('location')
+        guests = params.get('guests')
+        min_price = params.get('min_price')
+        max_price = params.get('max_price')
+        room_type = params.get('room_type')
+        amenities = params.getlist('amenities') if hasattr(params, 'getlist') else []
 
         if location:
             queryset = queryset.filter(location__icontains=location)
 
         if guests:
-            queryset = queryset.filter(maxGuests__gte=guests)
+            try:
+                queryset = queryset.filter(maxGuests__gte=int(guests))
+            except (TypeError, ValueError):
+                pass
 
         if min_price:
-            queryset = queryset.filter(price__gte=min_price)
+            try:
+                queryset = queryset.filter(price__gte=float(min_price))
+            except (TypeError, ValueError):
+                pass
 
         if max_price:
-            queryset = queryset.filter(price__lte=max_price)
+            try:
+                queryset = queryset.filter(price__lte=float(max_price))
+            except (TypeError, ValueError):
+                pass
 
         if room_type:
             queryset = queryset.filter(type__iexact=room_type)
 
         if amenities:
             for amenity in amenities:
-                queryset = queryset.filter(amenities__contains=[amenity])
+                try:
+                    queryset = queryset.filter(amenities__contains=[amenity])
+                except Exception:
+                    pass
 
         return queryset
 
