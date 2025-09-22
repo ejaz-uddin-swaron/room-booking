@@ -65,7 +65,7 @@ REST_FRAMEWORK = {
 
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
-        'Bearer': {  
+        'Token': {  # Updated to Token authentication
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header'
@@ -208,10 +208,3 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # File upload constraints (can be overridden by environment)
 MAX_FILE_SIZE = int(env("MAX_FILE_SIZE", default=5 * 1024 * 1024))  # 5MB
 ALLOWED_FILE_TYPES = set((env("ALLOWED_FILE_TYPES", default="jpg,jpeg,png,webp")).split(','))
-
-# SimpleJWT configuration (optional customizations)
-from datetime import timedelta
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=int(env("JWT_EXPIRES_HOURS", default=24))),
-    'SIGNING_KEY': env("JWT_SECRET", default=SECRET_KEY),
-}

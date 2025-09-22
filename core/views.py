@@ -6,7 +6,6 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 import os
 
@@ -14,7 +13,6 @@ from rooms.models import Room
 
 
 class UploadImagesView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -51,7 +49,6 @@ class UploadImagesView(APIView):
 
 
 class AdminStatsView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -80,7 +77,6 @@ class AdminStatsView(APIView):
 
 
 class VerifyTokenView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

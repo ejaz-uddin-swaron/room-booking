@@ -2,7 +2,6 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Room
 from .serializers import RoomSerializer
 from django.db.models import Q
@@ -10,7 +9,6 @@ from .permissions import IsAdminOrReadOnly
 
 class RoomListAPIView(generics.ListCreateAPIView):
     serializer_class = RoomSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
@@ -73,7 +71,6 @@ class RoomDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     lookup_field = 'id'
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminOrReadOnly]
 
     def retrieve(self, request, *args, **kwargs):
