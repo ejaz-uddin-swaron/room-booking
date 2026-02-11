@@ -11,8 +11,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 import environ
 from drf_yasg import openapi
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Create your views here.
 
@@ -49,18 +49,42 @@ class UserRegistrationApiView(APIView):
         return Response(serializer.errors, status=400)
     
 class UserLogoutView(APIView):
+    """Logout user by blacklisting their refresh token"""
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [JWTAuthentication]
 
     @swagger_auto_schema(
-        operation_description="Logout a user by deleting their token.",
+        operation_description="Logout a user by blacklisting their refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token')
+            },
+            required=['refresh']
+        )
     )
     def post(self, request):
         try:
-            request.user.auth_token.delete()
-            return Response({'success': True, 'message': 'Logged out successfully'}, status=status.HTTP_205_RESET_CONTENT)
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response(
+                    {'success': False, 'error': 'Refresh token is required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            
+            return Response(
+                {'success': True, 'message': 'Logged out successfully'}, 
+                status=status.HTTP_205_RESET_CONTENT
+            )
         except Exception as e:
-            return Response({'success': False, 'error': 'Token not found or already deleted', 'status': 400}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'success': False, 'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         
 
 class GetUserInfoByUsername(APIView):

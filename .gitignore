@@ -1,1 +1,14 @@
 bookings/.env
+.env
+*.pyc
+__pycache__/
+*.log
+db.sqlite3
+media/
+*.swp
+.DS_Store
+node_modules/
+.vscode/
+.idea/
+*.env.local
+.env.*.local

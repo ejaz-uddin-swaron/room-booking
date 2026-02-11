@@ -13,24 +13,38 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import environ
 import os
-env = environ.Env()
-environ.Env.read_env()
-from corsheaders.defaults import default_headers
+from datetime import timedelta
+
+# Initialize environment variables
+env = environ.Env(
+    DEBUG=(bool, False),
+    SECRET_KEY=(str, ''),
+    ALLOWED_HOSTS=(list, []),
+    CORS_ALLOWED_ORIGINS=(list, []),
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Read .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+from corsheaders.defaults import default_headers
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1t0&p%7&-m$7jp^*7%r!p%hq9ub8t46)e(zohu4o$s$n2vxt!i'
+SECRET_KEY = env('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ["*"]
+# SECURITY: Only allow specific hosts
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 # Application definition
 
@@ -42,7 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
     'django_filters',
     'django_extensions',
     'corsheaders',
@@ -54,6 +68,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 ]
 
+# REST Framework Configuration - JWT Authentication Only
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -63,12 +78,29 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 50,
 }
 
+# JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+
+# Swagger Settings - Updated for JWT
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
-        'Token': {  # Updated to Token authentication
+        'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',
-            'in': 'header'
+            'in': 'header',
+            'description': 'JWT authorization using the Bearer scheme. Example: "Bearer {token}"'
         }
     },
     'USE_SESSION_AUTH': False,
@@ -86,7 +118,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration - Secure
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = env.list(
+    'CORS_ALLOWED_ORIGINS',
+    default=[
+        'http://localhost:3000',
+        'http://localhost:5173',
+    ]
+)
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -94,9 +134,10 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'authorization',
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://room-booking-pjo6.onrender.com',
-]
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CORS_ALLOWED_ORIGINS',
+    default=['https://room-booking-pjo6.onrender.com']
+)
 
 ROOT_URLCONF = 'bookings.urls'
 

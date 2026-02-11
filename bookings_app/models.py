@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 from rooms.models import Room
 
 
@@ -11,6 +12,13 @@ class Booking(models.Model):
         ('completed', 'Completed'),
     )
 
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='bookings',
+        null=True,  # Allow null for existing records during migration
+        blank=True
+    )
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='bookings')
     check_in = models.DateField()
     check_out = models.DateField()
@@ -23,6 +31,12 @@ class Booking(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['check_in', 'check_out']),
+            models.Index(fields=['room', 'status']),
+        ]
 
     def __str__(self):
-        return f"Booking #{self.pk} - {self.room.name}"
+        username = self.user.username if self.user else 'Guest'
+        return f"Booking #{self.pk} - {self.room.name} by {username}"

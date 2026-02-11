@@ -16,18 +16,31 @@ def _is_admin(user):
 
 
 class BookingsView(APIView):
+    """
+    Booking management endpoint.
+    - GET: Admin only - retrieve all bookings
+    - POST: Authenticated users - create a booking
+    """
     authentication_classes = [JWTAuthentication]
-    permission_classes = []  # allow public create
+    
+    def get_permissions(self):
+        """Admin only for GET, authenticated for POST"""
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]  # Require authentication for POST as well
 
     def get(self, request):
+        # Admin only
         if not (request.user and request.user.is_authenticated and _is_admin(request.user)):
             return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
 
-        qs = Booking.objects.select_related('room').all()
+        qs = Booking.objects.select_related('room', 'user').all()
         data = []
         for b in qs:
             data.append({
                 'id': b.id,
+                'userId': b.user.id if b.user else None,
+                'username': b.user.username if b.user else 'Guest',
                 'roomId': str(b.room.id),
                 'checkIn': b.check_in.isoformat(),
                 'checkOut': b.check_out.isoformat(),
@@ -46,6 +59,13 @@ class BookingsView(APIView):
         return Response({'success': True, 'data': data})
 
     def post(self, request):
+        """Create a booking - requires authentication"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'success': False, 'error': 'Authentication required', 'status': 401}, 
+                status=401
+            )
+        
         # Accept camelCase fields
         payload = request.data
         room_id = payload.get('roomId') or payload.get('room_id')
@@ -98,7 +118,9 @@ class BookingsView(APIView):
         nights = (check_out_dt - check_in_dt).days
         total_price = room.price * nights
 
+        # Associate booking with authenticated user
         booking = Booking.objects.create(
+            user=request.user,  # Associate with authenticated user
             room=room,
             check_in=check_in_dt,
             check_out=check_out_dt,
@@ -110,6 +132,8 @@ class BookingsView(APIView):
 
         data = {
             'id': booking.id,
+            'userId': request.user.id,
+            'username': request.user.username,
             'roomId': str(room.id),
             'checkIn': booking.check_in.isoformat(),
             'checkOut': booking.check_out.isoformat(),
