@@ -12,3 +12,9 @@ node_modules/
 .idea/
 *.env.local
 .env.*.local
+
+# Documentation files (generated)
+CODE_REVIEW_REPORT.md
+SECURITY_FIXES_SUMMARY.md
+COMPLETE_SUMMARY.md
+QUICK_REFERENCE.md
