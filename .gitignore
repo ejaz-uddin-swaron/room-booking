@@ -1,17 +1,31 @@
-bookings/.env
+# Environment files
 .env
-*.pyc
-__pycache__/
-*.log
-db.sqlite3
-media/
-*.swp
-.DS_Store
-node_modules/
-.vscode/
-.idea/
+bookings/.env
 *.env.local
 .env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+node_modules/
 
 # Documentation files (generated)
 CODE_REVIEW_REPORT.md
