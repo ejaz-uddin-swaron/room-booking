@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('rooms', '0006_remove_room_created_at_remove_room_updated_at_and_more'),
+        ('rooms', '0007_remove_room_created_at_remove_room_updated_at_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

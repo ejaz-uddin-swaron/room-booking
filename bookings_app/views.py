@@ -151,7 +151,7 @@ class UpdateBookingStatusView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request, booking_id):
+    def patch(self, request, pk):
         if not _is_admin(request.user):
             return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
 
@@ -160,10 +160,38 @@ class UpdateBookingStatusView(APIView):
             return Response({'success': False, 'error': 'Invalid status', 'status': 422}, status=422)
 
         try:
-            b = Booking.objects.get(id=booking_id)
+            b = Booking.objects.get(id=pk)
         except Booking.DoesNotExist:
             return Response({'success': False, 'error': 'Booking not found', 'status': 404}, status=404)
 
         b.status = status_val
         b.save(update_fields=['status', 'updated_at'])
         return Response({'success': True, 'data': {'id': b.id, 'status': b.status, 'updatedAt': b.updated_at.isoformat()}})
+
+class UserBookingsView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = Booking.objects.filter(user=request.user).select_related('room').order_by('-created_at')
+        data = []
+        for b in qs:
+            data.append({
+                'id': b.id,
+                'roomId': str(b.room.id),
+                'checkIn': b.check_in.isoformat(),
+                'checkOut': b.check_out.isoformat(),
+                'guests': b.guests,
+                'totalPrice': float(b.total_price),
+                'status': b.status,
+                'guestInfo': b.guest_info,
+                'createdAt': b.created_at.isoformat(),
+                'updatedAt': b.updated_at.isoformat(),
+                'room': {
+                    'id': str(b.room.id),
+                    'name': b.room.name,
+                    'location': b.room.location,
+                    'images': b.room.images,
+                }
+            })
+        return Response({'success': True, 'data': data})

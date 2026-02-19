@@ -35,7 +35,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/rooms/', include('rooms.urls')),
     path('api/', include('core.urls')),
-    path('api/', include('bookings_app.urls')),
+    path('api/bookings/', include('bookings_app.urls')),
 
      # Swagger paths
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

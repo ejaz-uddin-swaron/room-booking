@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import BookingsView, UpdateBookingStatusView
+from .views import BookingsView, UpdateBookingStatusView, UserBookingsView
 
 urlpatterns = [
-    path('bookings', BookingsView.as_view(), name='bookings'),  # GET for admin, POST to create
-    path('bookings/<str:booking_id>/status', UpdateBookingStatusView.as_view(), name='update-booking-status'),
+    path('', BookingsView.as_view(), name='bookings'),  # GET for admin, POST to create
+    path('user-bookings/', UserBookingsView.as_view(), name='user-bookings'),
+    path('<int:pk>/status/', UpdateBookingStatusView.as_view(), name='update-booking-status'),
 ]

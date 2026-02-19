@@ -60,20 +60,30 @@ class AdminStatsView(APIView):
 
         total_rooms = Room.objects.count()
 
-        # Placeholder bookings aggregation – will update once Booking model exists
-        try:
-            from bookings_app.models import Booking  # will not resolve yet
-        except Exception:
-            # If no Booking model, return zeros gracefully
-            return Response({
-                'success': True,
-                'data': {
-                    'totalRooms': total_rooms,
-                    'totalBookings': 0,
-                    'totalRevenue': 0,
-                    'occupancyRate': 0.0,
-                }
-            })
+        from bookings_app.models import Booking
+        from django.db.models import Sum
+
+        total_bookings = Booking.objects.count()
+        total_revenue = Booking.objects.filter(status__in=['confirmed', 'completed']).aggregate(Sum('total_price'))['total_price__sum'] or 0
+        
+        # Calculate occupancy (very simple version: booked rooms / total rooms)
+        occupied_rooms = Booking.objects.filter(
+            status__in=['pending', 'confirmed'],
+            check_in__lte=timezone.now().date(),
+            check_out__gte=timezone.now().date()
+        ).values('room').distinct().count()
+        
+        occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
+
+        return Response({
+            'success': True,
+            'data': {
+                'totalRooms': total_rooms,
+                'totalBookings': total_bookings,
+                'totalRevenue': float(total_revenue),
+                'occupancyRate': round(occupancy_rate, 2),
+            }
+        })
 
 
 class VerifyTokenView(APIView):
