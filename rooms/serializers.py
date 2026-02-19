@@ -3,18 +3,8 @@ from .models import Room
 
 
 class RoomSerializer(serializers.ModelSerializer):
-    # createdAt/updatedAt are omitted because current schema doesn't have them in migration
-    images = serializers.SerializerMethodField()
     # Map camelCase to snake_case for API compatibility
     maxGuests = serializers.IntegerField(source='max_guests')
-
-    def get_images(self, obj):
-        val = getattr(obj, 'images', None)
-        if isinstance(val, list):
-            return val
-        if isinstance(val, str) and val:
-            return [val]
-        return []
 
     class Meta:
         model = Room
@@ -22,3 +12,15 @@ class RoomSerializer(serializers.ModelSerializer):
             'id', 'name', 'type', 'price', 'rating', 'reviews', 'images', 'amenities', 'description',
             'location', 'maxGuests', 'bedrooms', 'bathrooms', 'size', 'available'
         ]
+
+    def to_representation(self, instance):
+        """Normalize images field on output to always be a list."""
+        data = super().to_representation(instance)
+        val = data.get('images')
+        if isinstance(val, list):
+            data['images'] = val
+        elif isinstance(val, str) and val:
+            data['images'] = [val]
+        else:
+            data['images'] = []
+        return data
