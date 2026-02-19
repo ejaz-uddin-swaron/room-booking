@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('rooms', '0005_alter_room_images'),
+        ('rooms', '0006_convert_images_to_json'),
     ]
 
     operations = [
