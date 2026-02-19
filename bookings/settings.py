@@ -259,3 +259,30 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # File upload constraints (can be overridden by environment)
 MAX_FILE_SIZE = int(env("MAX_FILE_SIZE", default=5 * 1024 * 1024))  # 5MB
 ALLOWED_FILE_TYPES = set((env("ALLOWED_FILE_TYPES", default="jpg,jpeg,png,webp")).split(","))
+
+# ── Logging ───────────────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
