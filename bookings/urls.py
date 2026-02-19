@@ -6,17 +6,16 @@ from rest_framework import permissions
 
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from rest_framework import permissions
 
 schema_view = get_schema_view(
     openapi.Info(
         title="Booking Auth API",
         default_version='v1',
-    description="API documentation for Booking Platform",
+        description="API documentation for Booking Platform",
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
-    # REMOVE security argument here completely
+    url='https://room-booking-pjo6.onrender.com/' if not settings.DEBUG else None,
 )
 
 
