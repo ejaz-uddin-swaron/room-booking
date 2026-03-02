@@ -11,7 +11,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 import environ
 from drf_yasg import openapi
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -55,7 +54,6 @@ class UserRegistrationApiView(APIView):
 class UserLogoutView(APIView):
     """Logout user by blacklisting their refresh token"""
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
 
     @swagger_auto_schema(
         operation_description="Logout a user by blacklisting their refresh token.",
@@ -103,7 +101,6 @@ class GetUserInfoByUsername(APIView):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
 
     def get(self, request):
         serializer = serializers.UserDetailSerializer(request.user)
@@ -118,7 +115,6 @@ class ProfileView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
 
     def post(self, request):
         serializer = serializers.ChangePasswordSerializer(data=request.data)
@@ -134,7 +130,6 @@ class ChangePasswordView(APIView):
 
 class UploadProfileImageView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
 
     def post(self, request):
         if 'profile_image' not in request.FILES:

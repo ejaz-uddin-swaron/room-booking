@@ -21,6 +21,7 @@ env = environ.Env(
     SECRET_KEY=(str, ''),
     ALLOWED_HOSTS=(list, []),
     CORS_ALLOWED_ORIGINS=(list, []),
+    SUPABASE_JWT_SECRET=(str, ''),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -66,10 +67,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 ]
 
-# REST Framework Configuration - JWT Authentication Only
+# REST Framework Configuration - Supabase Integration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'accounts.authentication.SupabaseAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -103,6 +104,10 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
 }
+
+
+# Supabase Settings
+SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='')
 
 
 MIDDLEWARE = [

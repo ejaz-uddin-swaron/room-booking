@@ -5,8 +5,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from rooms.models import Room
 from .models import Booking
 
@@ -21,7 +19,6 @@ class BookingsView(APIView):
     - GET: Admin only - retrieve all bookings
     - POST: Authenticated users - create a booking
     """
-    authentication_classes = [JWTAuthentication]
     
     def get_permissions(self):
         """Admin only for GET, authenticated for POST"""
@@ -148,7 +145,6 @@ class BookingsView(APIView):
 
 
 class UpdateBookingStatusView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
@@ -169,7 +165,6 @@ class UpdateBookingStatusView(APIView):
         return Response({'success': True, 'data': {'id': b.id, 'status': b.status, 'updatedAt': b.updated_at.isoformat()}})
 
 class UserBookingsView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
