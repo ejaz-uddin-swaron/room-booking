@@ -124,7 +124,7 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=[
         'http://localhost:3000',
         'http://localhost:5173',
-        'https://manchester.netlify.app',
+        'https://manchester.netlify.app/',
     ]
 )
 
