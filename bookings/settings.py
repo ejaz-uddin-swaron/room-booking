@@ -124,7 +124,7 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=[
         'http://localhost:3000',
         'http://localhost:5173',
-        'https://manchester.netlify.app/',
+        'https://manchestervillas.netlify.app',
     ]
 )
 
@@ -148,7 +148,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     'https://room-booking-pjo6.onrender.com',
-    'https://manchester.netlify.app',
+    'https://manchestervillas.netlify.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
 ])
