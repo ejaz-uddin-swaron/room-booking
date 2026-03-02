@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import viewsets
 from . import models
 from . import serializers
@@ -14,6 +16,8 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -36,18 +40,20 @@ class UserRegistrationApiView(APIView):
             user.is_active = True
             user.save()
 
-            email_subject = 'Welcome to Our Platform!'
-            email_body = render_to_string('confirm_email.html', {
-                'username': user.username,
-                # Add more context if needed
-            })
-            email = EmailMultiAlternatives(email_subject, '', to=[user.email])
-            email.attach_alternative(email_body, 'text/html')
-            email.send()
+            try:
+                email_subject = 'Welcome to Our Platform!'
+                email_body = render_to_string('confirm_email.html', {
+                    'username': user.username,
+                })
+                email = EmailMultiAlternatives(email_subject, '', to=[user.email])
+                email.attach_alternative(email_body, 'text/html')
+                email.send()
+            except Exception as e:
+                logger.error(f'Failed to send welcome email to {user.email}: {e}')
 
             return Response({
                 'success': True,
-                'message': 'Registration successful. Check your email.'
+                'message': 'Registration successful.'
             }, status=201)
 
         return Response(serializer.errors, status=400)
