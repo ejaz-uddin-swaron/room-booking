@@ -19,12 +19,8 @@ class BookingsView(APIView):
     - GET: Admin only - retrieve all bookings
     - POST: Authenticated users - create a booking
     """
-    
-    def get_permissions(self):
-        """Admin only for GET, authenticated for POST"""
-        if self.request.method == 'GET':
-            return [IsAuthenticated()]
-        return [IsAuthenticated()]  # Require authentication for POST as well
+
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # Admin only
@@ -57,12 +53,7 @@ class BookingsView(APIView):
 
     def post(self, request):
         """Create a booking - requires authentication"""
-        if not request.user.is_authenticated:
-            return Response(
-                {'success': False, 'error': 'Authentication required', 'status': 401}, 
-                status=401
-            )
-        
+
         # Accept camelCase fields
         payload = request.data
         room_id = payload.get('roomId') or payload.get('room_id')

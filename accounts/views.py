@@ -1,103 +1,21 @@
-import logging
-
-from rest_framework import viewsets
 from . import models
 from . import serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
 from django.contrib.auth.models import User
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-import environ
-from drf_yasg import openapi
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
 
-logger = logging.getLogger(__name__)
-
-# Create your views here.
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = serializers.CustomTokenObtainPairSerializer
-
-class ClientViewset(viewsets.ModelViewSet):
-    queryset = models.Client.objects.all()
-    serializer_class = serializers.ClientSerializer
-
-class UserRegistrationApiView(APIView):
-    serializer_class = serializers.RegistratonSerializer
-
-    @swagger_auto_schema(request_body=serializers.RegistratonSerializer)
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-
-        if serializer.is_valid():
-            user = serializer.save()
-            user.is_active = True
-            user.save()
-
-            try:
-                email_subject = 'Welcome to Our Platform!'
-                email_body = render_to_string('confirm_email.html', {
-                    'username': user.username,
-                })
-                email = EmailMultiAlternatives(email_subject, '', to=[user.email])
-                email.attach_alternative(email_body, 'text/html')
-                email.send()
-            except Exception as e:
-                logger.error(f'Failed to send welcome email to {user.email}: {e}')
-
-            return Response({
-                'success': True,
-                'message': 'Registration successful.'
-            }, status=201)
-
-        return Response(serializer.errors, status=400)
-    
-class UserLogoutView(APIView):
-    """Logout user by blacklisting their refresh token"""
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(
-        operation_description="Logout a user by blacklisting their refresh token.",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token')
-            },
-            required=['refresh']
-        )
-    )
-    def post(self, request):
-        try:
-            refresh_token = request.data.get("refresh")
-            if not refresh_token:
-                return Response(
-                    {'success': False, 'error': 'Refresh token is required'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            
-            return Response(
-                {'success': True, 'message': 'Logged out successfully'}, 
-                status=status.HTTP_205_RESET_CONTENT
-            )
-        except Exception as e:
-            return Response(
-                {'success': False, 'error': str(e)}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        
+# Profile management views.
+# Authentication (login/register/password) is handled entirely by Supabase.
 
 class GetUserInfoByUsername(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, username):
+        if request.user.username != username and not request.user.is_staff:
+            return Response({'error': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             user = User.objects.get(username=username)
             serializer = serializers.UserDetailSerializer(user)
@@ -119,20 +37,7 @@ class ProfileView(APIView):
             return Response({'success': True, 'message': 'Profile updated successfully'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        serializer = serializers.ChangePasswordSerializer(data=request.data)
-        if serializer.is_valid():
-            user = request.user
-            if not user.check_password(serializer.validated_data['current_password']):
-                return Response({'error': 'Incorrect current password'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            return Response({'success': True, 'message': 'Password changed successfully'})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UploadProfileImageView(APIView):
     permission_classes = [IsAuthenticated]
@@ -140,8 +45,11 @@ class UploadProfileImageView(APIView):
     def post(self, request):
         if 'profile_image' not in request.FILES:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        client = request.user.client
+
+        client, _ = models.Client.objects.get_or_create(
+            user=request.user,
+            defaults={'mobile_no': '', 'role': 'customer', 'image': ''}
+        )
         client.image = request.FILES['profile_image']
         client.save()
         

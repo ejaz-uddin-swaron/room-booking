@@ -34,5 +34,9 @@ services:
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
       - key: SUPABASE_JWT_SECRET
         sync: false

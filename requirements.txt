@@ -27,7 +27,6 @@ django-extensions
 django-filter
 django-humanize
 djangorestframework
-djangorestframework_simplejwt
 drf-yasg
 filelock
 flatbuffers

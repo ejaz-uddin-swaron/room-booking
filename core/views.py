@@ -28,8 +28,6 @@ class UploadImagesView(APIView):
         max_size = int(getattr(settings, 'MAX_FILE_SIZE', 5 * 1024 * 1024))
 
         saved_urls = []
-        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)
 
         for f in files:
             ext = os.path.splitext(f.name)[1].lower().lstrip('.')
@@ -40,9 +38,10 @@ class UploadImagesView(APIView):
 
             filename = get_random_string(16) + '.' + ext
             path = os.path.join('uploads', filename)
-            full_path = os.path.join(settings.MEDIA_ROOT, filename if path.startswith(settings.MEDIA_ROOT) else path)
-            default_storage.save(full_path, ContentFile(f.read()))
-            url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, path))
+            saved_path = default_storage.save(path, ContentFile(f.read()))
+            media_url = settings.MEDIA_URL.rstrip('/')
+            normalized_saved_path = saved_path.replace('\\', '/')
+            url = request.build_absolute_uri(f'{media_url}/{normalized_saved_path}')
             saved_urls.append(url)
 
         return Response({'success': True, 'data': {'urls': saved_urls}})
@@ -99,6 +98,27 @@ class VerifyTokenView(APIView):
                 'user': {
                     'id': user.id,
                     'username': user.username,
+                    'role': getattr(client, 'role', 'customer') if client else 'customer',
+                }
+            }
+        })
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        client = getattr(user, 'client', None)
+        return Response({
+            'success': True,
+            'data': {
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
                     'role': getattr(client, 'role', 'customer') if client else 'customer',
                 }
             }

@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import environ
 import os
-from datetime import timedelta
 
 # Initialize environment variables
 env = environ.Env(
@@ -21,7 +20,9 @@ env = environ.Env(
     SECRET_KEY=(str, ''),
     ALLOWED_HOSTS=(list, []),
     CORS_ALLOWED_ORIGINS=(list, []),
+    SUPABASE_URL=(str, ''),
     SUPABASE_JWT_SECRET=(str, ''),
+    SUPABASE_JWT_AUDIENCE=(str, 'authenticated'),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -55,7 +56,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework_simplejwt',
     'django_filters',
     'django_extensions',
     'corsheaders',
@@ -64,7 +64,6 @@ INSTALLED_APPS = [
     'core',
     'bookings_app',
     'drf_yasg',
-    'rest_framework_simplejwt.token_blacklist',
 ]
 
 # REST Framework Configuration - Supabase Integration
@@ -77,29 +76,14 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 50,
 }
 
-# JWT Settings
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-}
-
-# Swagger Settings - Updated for JWT
+# Swagger Settings - Supabase access token (Bearer)
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'JWT authorization using the Bearer scheme. Example: "Bearer {token}"'
+            'description': 'Supabase access token using Bearer scheme. Example: "Bearer {token}"'
         }
     },
     'USE_SESSION_AUTH': False,
@@ -107,7 +91,9 @@ SWAGGER_SETTINGS = {
 
 
 # Supabase Settings
+SUPABASE_URL = env('SUPABASE_URL', default='')
 SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='')
+SUPABASE_JWT_AUDIENCE = env('SUPABASE_JWT_AUDIENCE', default='authenticated')
 
 
 MIDDLEWARE = [
