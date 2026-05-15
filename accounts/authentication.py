@@ -106,7 +106,7 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
         user, created = User.objects.get_or_create(
             username=supabase_id,
             defaults={
-                'email': email,
+                'email': email or '',
                 'first_name': first_name,
                 'last_name': last_name
             }
