@@ -13,14 +13,6 @@ class BookingSerializer(serializers.ModelSerializer):
         ]
 
 
-class BookingCreateSerializer(serializers.ModelSerializer):
-    roomId = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = Booking
-        fields = ['roomId', 'check_in', 'check_out', 'guests', 'guest_info']
-
-
 class RentPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RentPayment

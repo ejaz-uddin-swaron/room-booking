@@ -1,16 +1,17 @@
 from rest_framework import serializers
-from .models import Room
+from .models import Room, PropertyDocument
 
 
 class RoomSerializer(serializers.ModelSerializer):
     # Map camelCase to snake_case for API compatibility
     maxGuests = serializers.IntegerField(source='max_guests')
+    presenceStatus = serializers.CharField(read_only=True, default='')
 
     class Meta:
         model = Room
         fields = [
             'id', 'name', 'type', 'price', 'rating', 'reviews', 'images', 'amenities', 'description',
-            'location', 'maxGuests', 'bedrooms', 'bathrooms', 'size', 'available'
+            'location', 'maxGuests', 'bedrooms', 'bathrooms', 'size', 'available', 'presenceStatus'
         ]
 
     def to_representation(self, instance):
@@ -24,3 +25,25 @@ class RoomSerializer(serializers.ModelSerializer):
         else:
             data['images'] = []
         return data
+
+
+class PropertyDocumentSerializer(serializers.ModelSerializer):
+    roomId = serializers.IntegerField(source='room.id', required=False, allow_null=True)
+
+    class Meta:
+        model = PropertyDocument
+        fields = [
+            'id', 'roomId', 'name', 'type', 'description', 'file_url', 'upload_date',
+            'expiry_date', 'renewal_date', 'status', 'reminder_days', 'notes'
+        ]
+
+
+class PropertyDocumentCreateSerializer(serializers.ModelSerializer):
+    roomId = serializers.IntegerField(required=False, allow_null=True)
+
+    class Meta:
+        model = PropertyDocument
+        fields = [
+            'roomId', 'name', 'type', 'description', 'file_url', 'expiry_date',
+            'renewal_date', 'status', 'reminder_days', 'notes'
+        ]

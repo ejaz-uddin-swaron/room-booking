@@ -1,16 +1,18 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission
 
 
-class IsAdminOrReadOnly(BasePermission):
-    """Allow reads for anyone; writes only for admin role or staff."""
+class IsAdmin(BasePermission):
+    """
+    Admin-only permission.
+    Requires the request to be authenticated AND the user to have admin role
+    (via Client.role == 'admin' or Django is_staff).
+    """
 
     def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        # If linked Client has role 'admin' or Django is_staff
+        # Check Client profile role
         try:
             if hasattr(user, 'client') and user.client.role == 'admin':
                 return True

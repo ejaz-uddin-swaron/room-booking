@@ -75,5 +75,40 @@ class SupabaseStorage:
         }
         return content_types.get(ext, 'application/octet-stream')
 
+    def upload_document(self, file, bucket_name: str, folder: str = '') -> str:
+        if not self.client:
+            raise Exception("Supabase client not configured. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.")
+
+        file_ext = os.path.splitext(file.name)[1].lower()
+        allowed_extensions = {
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv',
+            '.jpg', '.jpeg', '.png', '.webp', '.gif'
+        }
+
+        if file_ext not in allowed_extensions:
+            raise Exception(f"Unsupported file type: {file_ext}")
+
+        file_content = file.read()
+        file_size = len(file_content)
+        max_size = getattr(settings, 'MAX_FILE_SIZE', 5 * 1024 * 1024)
+
+        if file_size > max_size:
+            raise Exception(f"File too large. Max size: {max_size} bytes")
+
+        file_name = f"{uuid.uuid4().hex}{file_ext}"
+        file_path = f"{folder}/{file_name}" if folder else file_name
+
+        response = self.client.storage.from_(bucket_name).upload(
+            path=file_path,
+            data=file_content,
+            file_options={"content-type": self._get_content_type(file_ext)}
+        )
+
+        if hasattr(response, 'path'):
+            return self.client.storage.from_(bucket_name).get_public_url(response.path)
+        if hasattr(response, 'data') and response.data:
+            return self.client.storage.from_(bucket_name).get_public_url(response.data.get('path', file_path))
+        raise Exception(f"Upload failed: {response}")
+
 
 supabase_storage = SupabaseStorage()

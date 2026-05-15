@@ -1,32 +1,21 @@
-from datetime import datetime
 from django.utils import timezone
-from django.db.models import Sum, Count
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rooms.permissions import IsAdmin
 from rooms.models import Room
 from .models import Booking
-
-
-def _is_admin(user):
-    return (hasattr(user, 'client') and getattr(user.client, 'role', None) == 'admin') or user.is_staff
+from . import serializers
 
 
 class BookingsView(APIView):
     """
-    Booking management endpoint.
-    - GET: Admin only - retrieve all bookings
-    - POST: Authenticated users - create a booking
+    Admin-only booking management.
+    GET: retrieve all bookings.
     """
-
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdmin]
 
     def get(self, request):
-        # Admin only
-        if not (request.user and request.user.is_authenticated and _is_admin(request.user)):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         qs = Booking.objects.select_related('room', 'user').all()
         data = []
         for b in qs:
@@ -51,97 +40,12 @@ class BookingsView(APIView):
             })
         return Response({'success': True, 'data': data})
 
-    def post(self, request):
-        """Create a booking - requires authentication"""
-
-        # Accept camelCase fields
-        payload = request.data
-        room_id = payload.get('roomId') or payload.get('room_id')
-        check_in = payload.get('checkIn') or payload.get('check_in')
-        check_out = payload.get('checkOut') or payload.get('check_out')
-        guests = payload.get('guests')
-        guest_info = payload.get('guestInfo') or payload.get('guest_info') or {}
-
-        if not all([room_id, check_in, check_out, guests]):
-            return Response({'success': False, 'error': 'Validation failed', 'status': 422, 'details': 'Missing required fields'}, status=422)
-
-        # Parse dates
-        try:
-            if isinstance(check_in, str):
-                check_in_dt = datetime.fromisoformat(check_in).date()
-            else:
-                check_in_dt = check_in
-            if isinstance(check_out, str):
-                check_out_dt = datetime.fromisoformat(check_out).date()
-            else:
-                check_out_dt = check_out
-        except Exception:
-            return Response({'success': False, 'error': 'Invalid date format', 'status': 422}, status=422)
-
-        # Date validation
-        if check_in_dt >= check_out_dt:
-            return Response({'success': False, 'error': 'Check-in must be before check-out', 'status': 422}, status=422)
-        if check_in_dt < timezone.now().date():
-            return Response({'success': False, 'error': 'Check-in must be in the future', 'status': 422}, status=422)
-
-        # Room existence and capacity
-        try:
-            room = Room.objects.get(id=room_id)
-        except Room.DoesNotExist:
-            return Response({'success': False, 'error': 'Room not found', 'status': 404}, status=404)
-
-        if int(guests) > room.max_guests:
-            return Response({'success': False, 'error': 'Guest count exceeds room capacity', 'status': 422}, status=422)
-
-        # Availability check (no overlaps)
-        overlap = Booking.objects.filter(
-            room=room,
-            check_in__lt=check_out_dt,
-            check_out__gt=check_in_dt,
-            status__in=['pending', 'confirmed']
-        ).exists()
-        if overlap:
-            return Response({'success': False, 'error': 'Room not available for selected dates', 'status': 422}, status=422)
-
-        nights = (check_out_dt - check_in_dt).days
-        total_price = room.price * nights
-
-        # Associate booking with authenticated user
-        booking = Booking.objects.create(
-            user=request.user,  # Associate with authenticated user
-            room=room,
-            check_in=check_in_dt,
-            check_out=check_out_dt,
-            guests=guests,
-            total_price=total_price,
-            guest_info=guest_info,
-            status='pending'
-        )
-
-        data = {
-            'id': booking.id,
-            'userId': request.user.id,
-            'username': request.user.username,
-            'roomId': str(room.id),
-            'checkIn': booking.check_in.isoformat(),
-            'checkOut': booking.check_out.isoformat(),
-            'guests': booking.guests,
-            'totalPrice': float(booking.total_price),
-            'status': booking.status,
-            'guestInfo': booking.guest_info,
-            'createdAt': booking.created_at.isoformat(),
-            'updatedAt': booking.updated_at.isoformat(),
-        }
-        return Response({'success': True, 'data': data}, status=201)
-
 
 class UpdateBookingStatusView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only booking status update."""
+    permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         status_val = request.data.get('status')
         if status_val not in ['pending', 'confirmed', 'cancelled', 'completed']:
             return Response({'success': False, 'error': 'Invalid status', 'status': 422}, status=422)
@@ -155,50 +59,18 @@ class UpdateBookingStatusView(APIView):
         b.save(update_fields=['status', 'updated_at'])
         return Response({'success': True, 'data': {'id': b.id, 'status': b.status, 'updatedAt': b.updated_at.isoformat()}})
 
-class UserBookingsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        qs = Booking.objects.filter(user=request.user).select_related('room').order_by('-created_at')
-        data = []
-        for b in qs:
-            data.append({
-                'id': b.id,
-                'roomId': str(b.room.id),
-                'checkIn': b.check_in.isoformat(),
-                'checkOut': b.check_out.isoformat(),
-                'guests': b.guests,
-                'totalPrice': float(b.total_price),
-                'status': b.status,
-                'guestInfo': b.guest_info,
-                'createdAt': b.created_at.isoformat(),
-                'updatedAt': b.updated_at.isoformat(),
-                'room': {
-                    'id': str(b.room.id),
-                    'name': b.room.name,
-                    'location': b.room.location,
-                    'images': b.room.images,
-                }
-            })
-        return Response({'success': True, 'data': data})
-
 
 class RentScheduleView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only rent schedule management."""
+    permission_classes = [IsAdmin]
 
     def get(self, request):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule
         schedules = RentSchedule.objects.all().prefetch_related('payment_history')
         serializer = serializers.RentScheduleSerializer(schedules, many=True)
         return Response({'success': True, 'data': serializer.data})
 
     def post(self, request):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule
         serializer = serializers.RentScheduleCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -208,12 +80,10 @@ class RentScheduleView(APIView):
 
 
 class RentScheduleDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only rent schedule detail, update, delete."""
+    permission_classes = [IsAdmin]
 
     def get(self, request, pk):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule
         try:
             schedule = RentSchedule.objects.prefetch_related('payment_history').get(pk=pk)
@@ -222,9 +92,6 @@ class RentScheduleDetailView(APIView):
             return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
 
     def put(self, request, pk):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule
         try:
             schedule = RentSchedule.objects.get(pk=pk)
@@ -237,9 +104,6 @@ class RentScheduleDetailView(APIView):
             return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
 
     def delete(self, request, pk):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule
         try:
             schedule = RentSchedule.objects.get(pk=pk)
@@ -250,12 +114,10 @@ class RentScheduleDetailView(APIView):
 
 
 class RentPaymentView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only rent payment recording."""
+    permission_classes = [IsAdmin]
 
     def post(self, request, schedule_id):
-        if not _is_admin(request.user):
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         from .models import RentSchedule, RentPayment
         try:
             schedule = RentSchedule.objects.get(pk=schedule_id)
@@ -267,3 +129,42 @@ class RentPaymentView(APIView):
             payment = serializer.save(schedule=schedule)
             return Response({'success': True, 'data': serializers.RentPaymentSerializer(payment).data}, status=201)
         return Response({'success': False, 'error': serializer.errors}, status=400)
+
+
+class RentReminderView(APIView):
+    """Admin-only rent due reminders."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from .models import RentSchedule
+        today = timezone.now().date()
+        reminders = []
+
+        schedules = RentSchedule.objects.all().prefetch_related('payment_history')
+        for schedule in schedules:
+            if schedule.status != 'active':
+                continue
+
+            last_day = (timezone.datetime(today.year, today.month, 28) + timezone.timedelta(days=4)).replace(day=1) - timezone.timedelta(days=1)
+            safe_due_day = min(schedule.due_day, last_day.day)
+            due_date = timezone.datetime(today.year, today.month, safe_due_day).date()
+            days_until_due = (due_date - today).days
+
+            if days_until_due <= 5 and days_until_due >= -30:
+                current_month = today.strftime('%Y-%m')
+                payment_exists = any(
+                    p.due_date.strftime('%Y-%m') == current_month and p.status == 'paid'
+                    for p in schedule.payment_history.all()
+                )
+                if not payment_exists:
+                    reminders.append({
+                        'id': f"rent-{schedule.id}-{current_month}",
+                        'scheduleId': schedule.id,
+                        'roomName': schedule.room_name,
+                        'tenantName': schedule.tenant_name,
+                        'dueDate': due_date.isoformat(),
+                        'amount': float(schedule.monthly_rent),
+                        'dismissed': False,
+                    })
+
+        return Response({'success': True, 'data': reminders})

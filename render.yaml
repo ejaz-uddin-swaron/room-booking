@@ -40,3 +40,5 @@ services:
         value: authenticated
       - key: SUPABASE_JWT_SECRET
         sync: false
+      - key: SUPABASE_DOCUMENTS_BUCKET
+        value: documents

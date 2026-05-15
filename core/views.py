@@ -6,11 +6,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
 from rooms.models import Room
+from rooms.permissions import IsAdmin
 from core.storage_backends import supabase_storage
 
 
 class UploadImagesView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only image upload to Supabase Storage."""
+    permission_classes = [IsAdmin]
 
     def post(self, request):
         files = request.FILES.getlist('images')
@@ -38,15 +40,10 @@ class UploadImagesView(APIView):
 
 
 class AdminStatsView(APIView):
-    permission_classes = [IsAuthenticated]
+    """Admin-only dashboard statistics."""
+    permission_classes = [IsAdmin]
 
     def get(self, request):
-        # simple role check
-        user = request.user
-        is_admin = getattr(getattr(user, 'client', None), 'role', None) == 'admin' or user.is_staff
-        if not is_admin:
-            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
-
         total_rooms = Room.objects.count()
 
         from bookings_app.models import Booking
@@ -76,6 +73,11 @@ class AdminStatsView(APIView):
 
 
 class VerifyTokenView(APIView):
+    """
+    Auth plumbing — returns the authenticated user's identity and role.
+    Must remain IsAuthenticated (not IsAdmin) so the frontend login flow
+    can determine whether the user is an admin before granting access.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -95,6 +97,11 @@ class VerifyTokenView(APIView):
 
 
 class MeView(APIView):
+    """
+    Auth plumbing — returns the current user profile including role.
+    Must remain IsAuthenticated (not IsAdmin) so the frontend login flow
+    can determine whether the user is an admin before granting access.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
