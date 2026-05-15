@@ -181,3 +181,89 @@ class UserBookingsView(APIView):
                 }
             })
         return Response({'success': True, 'data': data})
+
+
+class RentScheduleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule
+        schedules = RentSchedule.objects.all().prefetch_related('payment_history')
+        serializer = serializers.RentScheduleSerializer(schedules, many=True)
+        return Response({'success': True, 'data': serializer.data})
+
+    def post(self, request):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule
+        serializer = serializers.RentScheduleCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            schedule = serializer.save()
+            return Response({'success': True, 'data': serializers.RentScheduleSerializer(schedule).data}, status=201)
+        return Response({'success': False, 'error': serializer.errors}, status=400)
+
+
+class RentScheduleDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule
+        try:
+            schedule = RentSchedule.objects.prefetch_related('payment_history').get(pk=pk)
+            return Response({'success': True, 'data': serializers.RentScheduleSerializer(schedule).data})
+        except RentSchedule.DoesNotExist:
+            return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
+
+    def put(self, request, pk):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule
+        try:
+            schedule = RentSchedule.objects.get(pk=pk)
+            serializer = serializers.RentScheduleSerializer(schedule, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'success': True, 'data': serializer.data})
+            return Response({'success': False, 'error': serializer.errors}, status=400)
+        except RentSchedule.DoesNotExist:
+            return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
+
+    def delete(self, request, pk):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule
+        try:
+            schedule = RentSchedule.objects.get(pk=pk)
+            schedule.delete()
+            return Response({'success': True, 'message': 'Schedule deleted'})
+        except RentSchedule.DoesNotExist:
+            return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
+
+
+class RentPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, schedule_id):
+        if not _is_admin(request.user):
+            return Response({'success': False, 'error': 'Forbidden', 'status': 403}, status=403)
+
+        from .models import RentSchedule, RentPayment
+        try:
+            schedule = RentSchedule.objects.get(pk=schedule_id)
+        except RentSchedule.DoesNotExist:
+            return Response({'success': False, 'error': 'Schedule not found', 'status': 404}, status=404)
+
+        serializer = serializers.RentPaymentCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            payment = serializer.save(schedule=schedule)
+            return Response({'success': True, 'data': serializers.RentPaymentSerializer(payment).data}, status=201)
+        return Response({'success': False, 'error': serializer.errors}, status=400)

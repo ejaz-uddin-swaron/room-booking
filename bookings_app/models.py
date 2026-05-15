@@ -40,3 +40,48 @@ class Booking(models.Model):
     def __str__(self):
         username = self.user.username if self.user else 'Guest'
         return f"Booking #{self.pk} - {self.room.name} by {username}"
+
+
+class RentSchedule(models.Model):
+    room_name = models.CharField(max_length=255)
+    tenant_name = models.CharField(max_length=255)
+    tenant_email = models.EmailField(blank=True, default='')
+    tenant_phone = models.CharField(max_length=50, blank=True, default='')
+    monthly_rent = models.DecimalField(max_digits=10, decimal_places=2)
+    due_day = models.IntegerField(default=1)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='active')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.room_name} - {self.tenant_name} (${self.monthly_rent}/month)"
+
+
+class RentPayment(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('partial', 'Partial'),
+        ('overdue', 'Overdue'),
+    )
+
+    schedule = models.ForeignKey(RentSchedule, on_delete=models.CASCADE, related_name='payment_history')
+    due_date = models.DateField()
+    paid_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_method = models.CharField(max_length=100, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-due_date']
+
+    def __str__(self):
+        return f"Payment {self.due_date} - {self.status}"

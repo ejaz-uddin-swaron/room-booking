@@ -38,7 +38,7 @@ from corsheaders.defaults import default_headers
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-fallback-change-me-in-production')
+SECRET_KEY = env('SECRET_KEY')  # Required - must be set in .env
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
@@ -94,6 +94,7 @@ SWAGGER_SETTINGS = {
 SUPABASE_URL = env('SUPABASE_URL', default='')
 SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='')
 SUPABASE_JWT_AUDIENCE = env('SUPABASE_JWT_AUDIENCE', default='authenticated')
+SUPABASE_SERVICE_ROLE_KEY = env('SUPABASE_SERVICE_ROLE_KEY', default='')
 
 
 MIDDLEWARE = [

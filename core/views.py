@@ -1,15 +1,12 @@
 from django.conf import settings
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.utils.crypto import get_random_string
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-import os
 
 from rooms.models import Room
+from core.storage_backends import supabase_storage
 
 
 class UploadImagesView(APIView):
@@ -24,25 +21,18 @@ class UploadImagesView(APIView):
                 'status': 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        allowed = {ext.lower() for ext in settings.ALLOWED_FILE_TYPES}
-        max_size = int(getattr(settings, 'MAX_FILE_SIZE', 5 * 1024 * 1024))
-
         saved_urls = []
 
         for f in files:
-            ext = os.path.splitext(f.name)[1].lower().lstrip('.')
-            if ext not in allowed:
-                return Response({'success': False, 'error': f'Unsupported file type: .{ext}', 'status': 422}, status=422)
-            if f.size > max_size:
-                return Response({'success': False, 'error': f'File too large: {f.name}', 'status': 413}, status=413)
-
-            filename = get_random_string(16) + '.' + ext
-            path = os.path.join('uploads', filename)
-            saved_path = default_storage.save(path, ContentFile(f.read()))
-            media_url = settings.MEDIA_URL.rstrip('/')
-            normalized_saved_path = saved_path.replace('\\', '/')
-            url = request.build_absolute_uri(f'{media_url}/{normalized_saved_path}')
-            saved_urls.append(url)
+            try:
+                url = supabase_storage.upload_image(f, bucket_name='images', folder='uploads')
+                saved_urls.append(url)
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'error': str(e),
+                    'status': 500
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'success': True, 'data': {'urls': saved_urls}})
 

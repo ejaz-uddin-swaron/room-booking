@@ -46,15 +46,29 @@ class UploadProfileImageView(APIView):
         if 'profile_image' not in request.FILES:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        client, _ = models.Client.objects.get_or_create(
-            user=request.user,
-            defaults={'mobile_no': '', 'role': 'customer', 'image': ''}
-        )
-        client.image = request.FILES['profile_image']
-        client.save()
-        
-        return Response({
-            'success': True, 
-            'message': 'Profile image uploaded successfully',
-            'image_url': client.image.url
-        })
+        from core.storage_backends import supabase_storage
+        from django.conf import settings
+
+        profile_image = request.FILES['profile_image']
+
+        try:
+            image_url = supabase_storage.upload_image(
+                profile_image,
+                bucket_name='images',
+                folder='profiles'
+            )
+
+            client, _ = models.Client.objects.get_or_create(
+                user=request.user,
+                defaults={'mobile_no': '', 'role': 'customer', 'image': ''}
+            )
+            client.image = image_url
+            client.save()
+
+            return Response({
+                'success': True,
+                'message': 'Profile image uploaded successfully',
+                'image_url': image_url
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
