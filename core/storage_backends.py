@@ -72,6 +72,12 @@ class SupabaseStorage:
             '.png': 'image/png',
             '.webp': 'image/webp',
             '.gif': 'image/gif',
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.csv': 'text/csv',
         }
         return content_types.get(ext, 'application/octet-stream')
 
