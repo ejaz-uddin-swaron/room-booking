@@ -3,6 +3,7 @@
 bookings/.env
 *.env.local
 .env.*.local
+.claude
 
 # Python
 __pycache__/
