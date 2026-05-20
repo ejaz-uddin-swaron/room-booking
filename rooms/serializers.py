@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, PropertyDocument
+from .models import Room, PropertyDocument, PropertyImage, PropertyLevelDocument
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -47,3 +47,20 @@ class PropertyDocumentCreateSerializer(serializers.ModelSerializer):
             'roomId', 'name', 'type', 'description', 'file_url', 'expiry_date',
             'renewal_date', 'status', 'reminder_days', 'notes'
         ]
+
+
+class PropertyImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyImage
+        fields = ['id', 'property_name', 'image_url', 'caption', 'is_primary', 'sort_order', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class PropertyLevelDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyLevelDocument
+        fields = [
+            'id', 'property_name', 'name', 'type', 'description', 'file_url',
+            'upload_date', 'expiry_date', 'renewal_date', 'status', 'reminder_days', 'notes'
+        ]
+        read_only_fields = ['id', 'upload_date']

@@ -2,8 +2,8 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Room, PropertyDocument
-from .serializers import RoomSerializer, PropertyDocumentSerializer, PropertyDocumentCreateSerializer
+from .models import Room, PropertyDocument, PropertyImage, PropertyLevelDocument
+from .serializers import RoomSerializer, PropertyDocumentSerializer, PropertyDocumentCreateSerializer, PropertyImageSerializer, PropertyLevelDocumentSerializer
 from django.db.models import Q
 from .permissions import IsAdmin
 from django.utils import timezone
@@ -191,6 +191,121 @@ class PropertyDocumentUploadView(APIView):
 
         try:
             url = supabase_storage.upload_document(file, bucket_name=bucket, folder='property-documents')
+            return Response({'success': True, 'data': {'url': url}})
+        except Exception as exc:
+            return Response({'success': False, 'error': str(exc), 'status': 500}, status=500)
+
+
+class PropertyImageListView(generics.ListCreateAPIView):
+    """Admin-only property-level image listing and creation."""
+    serializer_class = PropertyImageSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        property_name = self.request.query_params.get('property_name')
+        qs = PropertyImage.objects.all()
+        if property_name:
+            qs = qs.filter(property_name=property_name)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'success': True, 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'success': True, 'data': serializer.data}, status=201)
+
+
+class PropertyImageDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Admin-only property image detail, update, and delete."""
+    queryset = PropertyImage.objects.all()
+    serializer_class = PropertyImageSerializer
+    permission_classes = [IsAdmin]
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return Response({'success': True, 'data': self.get_serializer(instance).data})
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'success': True, 'data': serializer.data})
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.image_url:
+            supabase_storage.delete_file_from_url(instance.image_url, 'images')
+        instance.delete()
+        return Response({'success': True, 'message': 'Property image deleted'})
+
+
+class PropertyLevelDocumentListView(generics.ListCreateAPIView):
+    """Admin-only property-level document listing and creation."""
+    serializer_class = PropertyLevelDocumentSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        property_name = self.request.query_params.get('property_name')
+        qs = PropertyLevelDocument.objects.all()
+        if property_name:
+            qs = qs.filter(property_name=property_name)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'success': True, 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'success': True, 'data': serializer.data}, status=201)
+
+
+class PropertyLevelDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Admin-only property-level document detail, update, and delete."""
+    queryset = PropertyLevelDocument.objects.all()
+    serializer_class = PropertyLevelDocumentSerializer
+    permission_classes = [IsAdmin]
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return Response({'success': True, 'data': self.get_serializer(instance).data})
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'success': True, 'data': serializer.data})
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.file_url:
+            bucket = getattr(settings, 'SUPABASE_DOCUMENTS_BUCKET', 'documents')
+            supabase_storage.delete_file_from_url(instance.file_url, bucket)
+        instance.delete()
+        return Response({'success': True, 'message': 'Property document deleted'})
+
+
+class PropertyLevelDocumentUploadView(APIView):
+    """Admin-only property-level document file upload to Supabase Storage."""
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'success': False, 'error': 'No file uploaded', 'status': 400}, status=400)
+
+        bucket = getattr(settings, 'SUPABASE_DOCUMENTS_BUCKET', 'documents')
+
+        try:
+            url = supabase_storage.upload_document(file, bucket_name=bucket, folder='property-level-documents')
             return Response({'success': True, 'data': {'url': url}})
         except Exception as exc:
             return Response({'success': False, 'error': str(exc), 'status': 500}, status=500)
