@@ -10,4 +10,4 @@ django.setup()
 logging.basicConfig(level=logging.DEBUG)
 
 from django.core.management import call_command
-call_command('runserver', '8000', '--noreload', '--debug')
+call_command('runserver', '8000', '--noreload')

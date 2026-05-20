@@ -1,7 +1,10 @@
 import os
 import uuid
+import logging
 from django.conf import settings
 from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
 
 
 class SupabaseStorage:
@@ -9,12 +12,62 @@ class SupabaseStorage:
         self.supabase_url = getattr(settings, 'SUPABASE_URL', None)
         self.service_role_key = getattr(settings, 'SUPABASE_SERVICE_ROLE_KEY', None)
         self._client = None
+        self._ensured_buckets: set = set()
 
     @property
     def client(self) -> Client:
         if self._client is None and self.supabase_url and self.service_role_key:
             self._client = create_client(self.supabase_url, self.service_role_key)
         return self._client
+
+    def _ensure_bucket(self, bucket_name: str, public: bool = True):
+        """Create the storage bucket if it doesn't already exist."""
+        if bucket_name in self._ensured_buckets:
+            return
+        if not self.client:
+            return
+        try:
+            self.client.storage.get_bucket(bucket_name)
+        except Exception:
+            try:
+                self.client.storage.create_bucket(
+                    bucket_name,
+                    options={"public": public}
+                )
+                logger.info("Created Supabase bucket: %s", bucket_name)
+            except Exception as e:
+                # Bucket may already exist (race condition) — that's fine
+                logger.debug("Bucket create returned: %s", e)
+        self._ensured_buckets.add(bucket_name)
+
+    def _do_upload(self, bucket_name: str, file_path: str, file_content: bytes, content_type: str) -> str:
+        """
+        Upload bytes to Supabase Storage and return the public URL.
+        Handles supabase-py v2+ API changes gracefully.
+        """
+        storage = self.client.storage.from_(bucket_name)
+
+        # supabase-py v2+ uses 'file' kwarg; older versions used 'data'.
+        # Try the modern signature first, fall back to the legacy one.
+        try:
+            storage.upload(
+                path=file_path,
+                file=file_content,
+                file_options={"content-type": content_type}
+            )
+        except TypeError:
+            # Fallback for older supabase-py that uses 'data' parameter
+            storage.upload(
+                path=file_path,
+                data=file_content,
+                file_options={"content-type": content_type}
+            )
+
+        # We already know the path we uploaded to — construct URL directly.
+        # This is more reliable than parsing the upload response object,
+        # which varies across supabase-py versions.
+        public_url = storage.get_public_url(file_path)
+        return public_url
 
     def upload_image(self, file, bucket_name: str = 'images', folder: str = '') -> str:
         if not self.client:
@@ -34,54 +87,17 @@ class SupabaseStorage:
             raise Exception(f"File too large. Max size: {max_size} bytes")
 
         file_name = f"{uuid.uuid4().hex}{file_ext}"
-        if folder:
-            file_path = f"{folder}/{file_name}"
-        else:
-            file_path = file_name
+        file_path = f"{folder}/{file_name}" if folder else file_name
 
-        response = self.client.storage.from_(bucket_name).upload(
-            path=file_path,
-            data=file_content,
-            file_options={"content-type": self._get_content_type(file_ext)}
-        )
-
-        if hasattr(response, 'path'):
-            public_url = self.client.storage.from_(bucket_name).get_public_url(response.path)
-            return public_url
-        elif hasattr(response, 'data') and response.data:
-            public_url = self.client.storage.from_(bucket_name).get_public_url(response.data.get('path', file_path))
-            return public_url
-        else:
-            raise Exception(f"Upload failed: {response}")
-
-    def delete_image(self, file_path: str, bucket_name: str = 'images') -> bool:
-        if not self.client:
-            raise Exception("Supabase client not configured.")
+        self._ensure_bucket(bucket_name)
 
         try:
-            self.client.storage.from_(bucket_name).remove([file_path])
-            return True
+            return self._do_upload(bucket_name, file_path, file_content, self._get_content_type(file_ext))
         except Exception as e:
-            print(f"Delete failed: {e}")
-            return False
+            logger.exception("Image upload failed for %s", file.name)
+            raise Exception(f"Image upload failed: {e}")
 
-    def _get_content_type(self, ext: str) -> str:
-        content_types = {
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png',
-            '.webp': 'image/webp',
-            '.gif': 'image/gif',
-            '.pdf': 'application/pdf',
-            '.doc': 'application/msword',
-            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            '.xls': 'application/vnd.ms-excel',
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            '.csv': 'text/csv',
-        }
-        return content_types.get(ext, 'application/octet-stream')
-
-    def upload_document(self, file, bucket_name: str, folder: str = '') -> str:
+    def upload_document(self, file, bucket_name: str = 'documents', folder: str = '') -> str:
         if not self.client:
             raise Exception("Supabase client not configured. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.")
 
@@ -104,17 +120,40 @@ class SupabaseStorage:
         file_name = f"{uuid.uuid4().hex}{file_ext}"
         file_path = f"{folder}/{file_name}" if folder else file_name
 
-        response = self.client.storage.from_(bucket_name).upload(
-            path=file_path,
-            data=file_content,
-            file_options={"content-type": self._get_content_type(file_ext)}
-        )
+        self._ensure_bucket(bucket_name)
 
-        if hasattr(response, 'path'):
-            return self.client.storage.from_(bucket_name).get_public_url(response.path)
-        if hasattr(response, 'data') and response.data:
-            return self.client.storage.from_(bucket_name).get_public_url(response.data.get('path', file_path))
-        raise Exception(f"Upload failed: {response}")
+        try:
+            return self._do_upload(bucket_name, file_path, file_content, self._get_content_type(file_ext))
+        except Exception as e:
+            logger.exception("Document upload failed for %s", file.name)
+            raise Exception(f"Document upload failed: {e}")
+
+    def delete_image(self, file_path: str, bucket_name: str = 'images') -> bool:
+        if not self.client:
+            raise Exception("Supabase client not configured.")
+
+        try:
+            self.client.storage.from_(bucket_name).remove([file_path])
+            return True
+        except Exception as e:
+            logger.warning("Delete failed for %s: %s", file_path, e)
+            return False
+
+    def _get_content_type(self, ext: str) -> str:
+        content_types = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif',
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.csv': 'text/csv',
+        }
+        return content_types.get(ext, 'application/octet-stream')
 
 
 supabase_storage = SupabaseStorage()
