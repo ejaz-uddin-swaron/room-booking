@@ -139,6 +139,16 @@ class SupabaseStorage:
             logger.warning("Delete failed for %s: %s", file_path, e)
             return False
 
+    def delete_file_from_url(self, url: str, bucket_name: str) -> bool:
+        if not url:
+            return False
+        marker = f"/object/public/{bucket_name}/"
+        if marker in url:
+            file_path = url.split(marker)[-1]
+            file_path = file_path.split('?')[0].split('#')[0]
+            return self.delete_image(file_path, bucket_name)
+        return False
+
     def _get_content_type(self, ext: str) -> str:
         content_types = {
             '.jpg': 'image/jpeg',

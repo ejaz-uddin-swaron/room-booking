@@ -104,13 +104,23 @@ class RoomDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        old_images = instance.images or []
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
+
+        new_images = serializer.validated_data.get('images', old_images)
+        removed_images = set(old_images) - set(new_images)
+        for url in removed_images:
+            supabase_storage.delete_file_from_url(url, 'images')
+
         self.perform_update(serializer)
         return Response({'success': True, 'data': serializer.data})
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        if instance.images:
+            for url in instance.images:
+                supabase_storage.delete_file_from_url(url, 'images')
         self.perform_destroy(instance)
         return Response({'success': True, 'message': 'Room deleted successfully'})
 
@@ -161,6 +171,9 @@ class PropertyDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        if instance.file_url:
+            bucket = getattr(settings, 'SUPABASE_DOCUMENTS_BUCKET', 'documents')
+            supabase_storage.delete_file_from_url(instance.file_url, bucket)
         instance.delete()
         return Response({'success': True, 'message': 'Document deleted'})
 
