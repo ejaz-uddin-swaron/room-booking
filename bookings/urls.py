@@ -11,17 +11,17 @@ from drf_yasg import openapi
 
 def root_view(request):
     return JsonResponse({
-        'status': 'ok',
-        'message': 'Room Booking API is running',
-        'docs': '/swagger/',
+        "status": "success",
+        "message": "NeoScape Properties API is running",
+        "version": "1.0.0"
     })
 
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Booking Auth API",
+        title="NeoScape Properties API",
         default_version='v1',
-        description="API documentation for Booking Platform",
+        description="API documentation for the NeoScape Properties Platform",
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),

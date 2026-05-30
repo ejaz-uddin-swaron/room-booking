@@ -42,3 +42,20 @@ services:
         sync: false
       - key: SUPABASE_DOCUMENTS_BUCKET
         value: documents
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+  - type: cron
+    name: room-booking-reminders
+    runtime: python
+    repo: https://github.com/ejaz-uddin-swaron/room-booking
+    branch: main
+    schedule: "0 8 * * *" # Runs every day at 08:00 AM UTC
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: python manage.py send_rent_reminders
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.7"
+      - fromService:
+          type: web
+          name: room-booking

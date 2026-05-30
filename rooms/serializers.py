@@ -51,7 +51,7 @@ class PublicRoomSerializer(serializers.ModelSerializer):
 
 
 class PropertyDocumentSerializer(serializers.ModelSerializer):
-    propertyId = serializers.CharField(source='property_id')
+    propertyId = serializers.CharField(source='property_id', required=False, allow_blank=True)
     roomId = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     tenantId = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     assignmentId = serializers.IntegerField(write_only=True, required=False, allow_null=True)

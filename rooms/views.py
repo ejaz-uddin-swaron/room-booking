@@ -368,6 +368,22 @@ class PropertyDocumentListView(generics.ListCreateAPIView):
                     assignment=assignment,
                     status='pending'  # Force pending status for tenant uploads
                 )
+
+                # Send notification to admins
+                try:
+                    from core.models import Notification
+                    from django.contrib.auth.models import User
+                    admin_users = User.objects.filter(client__role='admin')
+                    for admin_user in admin_users:
+                        Notification.objects.create(
+                            user=admin_user,
+                            title='New Document Uploaded',
+                            message=f'Tenant {user.username} uploaded a new document: "{doc.name}".',
+                            type='general',
+                            link='/admin/management',
+                        )
+                except Exception:
+                    pass
             else:
                 # Admins can create any document
                 room_id = serializer.validated_data.get('room_id') or request.data.get('roomId')
