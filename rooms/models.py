@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Room(models.Model):
@@ -34,6 +35,9 @@ class PropertyDocument(models.Model):
         ('insurance', 'Insurance'),
         ('contract', 'Contract'),
         ('certificate', 'Certificate'),
+        ('id', 'ID Document'),
+        ('proof_of_address', 'Proof of Address'),
+        ('reference', 'Reference Letter'),
         ('other', 'Other'),
     )
 
@@ -42,9 +46,19 @@ class PropertyDocument(models.Model):
         ('expiring-soon', 'Expiring Soon'),
         ('expired', 'Expired'),
         ('renewed', 'Renewed'),
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
     )
 
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='documents', null=True, blank=True)
+    property_id = models.CharField(max_length=255, db_index=True)  # Required consolidated field
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='property_documents', null=True, blank=True)
+    tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='property_documents', null=True, blank=True)
+    assignment = models.ForeignKey(
+        'bookings_app.TenantAssignment', on_delete=models.SET_NULL, related_name='property_documents', null=True, blank=True
+    )
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_documents')
+    
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, default='other')
     description = models.TextField(blank=True, default='')
@@ -52,15 +66,19 @@ class PropertyDocument(models.Model):
     upload_date = models.DateField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
     renewal_date = models.DateField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     reminder_days = models.IntegerField(default=30)
     notes = models.TextField(blank=True, default='')
+    admin_notes = models.TextField(blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ['-upload_date']
 
     def __str__(self):
-        return self.name
+        return f"{self.property_id} - {self.name} ({self.type})"
+
 
 
 class PropertyImage(models.Model):
@@ -79,38 +97,25 @@ class PropertyImage(models.Model):
         return f"{self.property_name} - Image {self.pk}"
 
 
-class PropertyLevelDocument(models.Model):
-    """Property-level documents (not room-level). Identified by property_name which matches Room.location."""
-    DOCUMENT_TYPES = (
-        ('license', 'License'),
-        ('permit', 'Permit'),
-        ('insurance', 'Insurance'),
-        ('contract', 'Contract'),
-        ('certificate', 'Certificate'),
-        ('other', 'Other'),
-    )
-
+class BookingInterest(models.Model):
+    """Public users expressing interest in a property/room."""
     STATUS_CHOICES = (
-        ('active', 'Active'),
-        ('expiring-soon', 'Expiring Soon'),
-        ('expired', 'Expired'),
-        ('renewed', 'Renewed'),
+        ('new', 'New'),
+        ('contacted', 'Contacted'),
+        ('closed', 'Closed'),
     )
 
-    property_name = models.CharField(max_length=255, db_index=True)
     name = models.CharField(max_length=255)
-    type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, default='other')
-    description = models.TextField(blank=True, default='')
-    file_url = models.TextField()
-    upload_date = models.DateField(auto_now_add=True)
-    expiry_date = models.DateField(null=True, blank=True)
-    renewal_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    reminder_days = models.IntegerField(default=30)
-    notes = models.TextField(blank=True, default='')
+    email = models.EmailField()
+    phone = models.CharField(max_length=50, blank=True, default='')
+    message = models.TextField(blank=True, default='')
+    room = models.ForeignKey(Room, null=True, blank=True, on_delete=models.SET_NULL, related_name='interests')
+    property_name = models.CharField(max_length=255, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-upload_date']
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.property_name} - {self.name}"
+        return f"Interest from {self.name} - {self.property_name or 'General'}"

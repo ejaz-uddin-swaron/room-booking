@@ -98,7 +98,7 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
         last_name = ' '.join(user_metadata.get('full_name', '').split(' ')[1:]) if user_metadata.get('full_name') else ''
         app_metadata = payload.get('app_metadata', {})
         role = app_metadata.get('role') or user_metadata.get('role') or 'customer'
-        if role not in {'customer', 'admin'}:
+        if role not in {'customer', 'tenant', 'admin'}:
             role = 'customer'
 
         # Get or create the Django User

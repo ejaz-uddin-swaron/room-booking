@@ -42,6 +42,40 @@ class Booking(models.Model):
         return f"Booking #{self.pk} - {self.room.name} by {username}"
 
 
+class TenantAssignment(models.Model):
+    """Links a tenant user to a specific room/property."""
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('ended', 'Ended'),
+        ('pending', 'Pending'),
+    )
+
+    tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assignments')
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='tenant_assignments')
+    property_name = models.CharField(max_length=255, db_index=True)  # matches Room.location
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    monthly_rent = models.DecimalField(max_digits=10, decimal_places=2)
+    deposit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'room'],
+                condition=models.Q(status='active'),
+                name='unique_active_tenant_room'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.tenant.username} → {self.room.name} ({self.status})"
+
+
 class RentSchedule(models.Model):
     room_name = models.CharField(max_length=255)
     tenant_name = models.CharField(max_length=255)
@@ -52,6 +86,9 @@ class RentSchedule(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, default='active')
+    # New FK links to proper user/assignment (nullable for backward compat)
+    tenant_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='rent_schedules')
+    assignment = models.ForeignKey(TenantAssignment, null=True, blank=True, on_delete=models.SET_NULL, related_name='rent_schedules')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

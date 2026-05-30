@@ -46,7 +46,7 @@ class AdminStatsView(APIView):
     def get(self, request):
         total_rooms = Room.objects.count()
 
-        from bookings_app.models import Booking
+        from bookings_app.models import Booking, TenantAssignment
         from django.db.models import Sum
 
         total_bookings = Booking.objects.count()
@@ -61,6 +61,9 @@ class AdminStatsView(APIView):
         
         occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
 
+        # New: tenant stats
+        total_tenants = TenantAssignment.objects.filter(status='active').count()
+
         return Response({
             'success': True,
             'data': {
@@ -68,6 +71,7 @@ class AdminStatsView(APIView):
                 'totalBookings': total_bookings,
                 'totalRevenue': float(total_revenue),
                 'occupancyRate': round(occupancy_rate, 2),
+                'totalActiveTenants': total_tenants,
             }
         })
 
@@ -120,3 +124,62 @@ class MeView(APIView):
                 }
             }
         })
+
+
+# ─── Notification Views ──────────────────────────────────────────────────────
+
+
+class NotificationListView(APIView):
+    """List notifications for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from core.models import Notification
+        unread_only = request.query_params.get('unread') == 'true'
+        qs = Notification.objects.filter(user=request.user)
+        if unread_only:
+            qs = qs.filter(read=False)
+        qs = qs[:50]  # Limit to last 50
+
+        data = [{
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'type': n.type,
+            'read': n.read,
+            'link': n.link,
+            'createdAt': n.created_at.isoformat(),
+        } for n in qs]
+
+        unread_count = Notification.objects.filter(user=request.user, read=False).count()
+
+        return Response({
+            'success': True,
+            'data': data,
+            'unreadCount': unread_count,
+        })
+
+
+class NotificationMarkReadView(APIView):
+    """Mark a notification as read."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        from core.models import Notification
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+            notification.read = True
+            notification.save(update_fields=['read'])
+            return Response({'success': True})
+        except Notification.DoesNotExist:
+            return Response({'success': False, 'error': 'Notification not found'}, status=404)
+
+
+class NotificationMarkAllReadView(APIView):
+    """Mark all notifications as read for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from core.models import Notification
+        Notification.objects.filter(user=request.user, read=False).update(read=True)
+        return Response({'success': True, 'message': 'All notifications marked as read'})

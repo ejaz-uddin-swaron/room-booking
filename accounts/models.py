@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 ROLE_CHOICES = (
         ('customer', 'Customer'),
+        ('tenant', 'Tenant'),
         ('admin', 'Admin'),
     )
 
