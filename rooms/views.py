@@ -273,7 +273,7 @@ class BookingInterestView(APIView):
                         title='New Booking Interest',
                         message=f'{interest.name} ({interest.email}) is interested in {interest.property_name or "a property"}.',
                         type='general',
-                        link='/admin/management',
+                        link='/admin/management?tab=interests',
                     )
             except Exception:
                 pass  # Don't fail if notification creation fails
@@ -556,3 +556,33 @@ class PropertyImageDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # Note: Deprecated views for PropertyLevelDocument and TenantDocument have been consolidated into PropertyDocument views above.
+
+
+class AdminBookingInterestListView(APIView):
+    """Admin-only view to list all booking interest submissions."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from .models import BookingInterest
+        from .serializers import BookingInterestSerializer
+        property_name = request.query_params.get('propertyName')
+        qs = BookingInterest.objects.all().order_by('-created_at')
+        if property_name:
+            qs = qs.filter(property_name=property_name)
+        serializer = BookingInterestSerializer(qs, many=True)
+        return Response({'success': True, 'data': serializer.data})
+
+
+class AdminBookingInterestDetailView(APIView):
+    """Admin-only view to delete booking interest submissions."""
+    permission_classes = [IsAdmin]
+
+    def delete(self, request, pk):
+        from .models import BookingInterest
+        try:
+            interest = BookingInterest.objects.get(pk=pk)
+            interest.delete()
+            return Response({'success': True, 'message': 'Interest record deleted'})
+        except BookingInterest.DoesNotExist:
+            return Response({'success': False, 'error': 'Record not found', 'status': 404}, status=404)
+

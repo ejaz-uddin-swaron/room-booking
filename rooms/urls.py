@@ -5,6 +5,7 @@ from .views import (
     PropertyImageListView, PropertyImageDetailView,
     PublicRoomListView, PublicRoomDetailView, PublicPropertyListView, PublicPropertyImagesView,
     BookingInterestView,
+    AdminBookingInterestListView, AdminBookingInterestDetailView,
 )
 
 urlpatterns = [
@@ -36,5 +37,9 @@ urlpatterns = [
     path('public/properties/', PublicPropertyListView.as_view(), name='public-property-list'),
     path('public/properties/<str:property_name>/images/', PublicPropertyImagesView.as_view(), name='public-property-images'),
     path('public/interest/', BookingInterestView.as_view(), name='booking-interest'),
+
+    # Admin booking interests
+    path('admin/interests/', AdminBookingInterestListView.as_view(), name='admin-interests-list'),
+    path('admin/interests/<int:pk>/', AdminBookingInterestDetailView.as_view(), name='admin-interests-detail'),
 ]
 

@@ -86,6 +86,7 @@ class TenantAssignmentCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from django.contrib.auth.models import User
         from rooms.models import Room
+        from .models import RentSchedule
 
         tenant_id = validated_data.pop('tenant_id')
         room_id = validated_data.pop('room_id')
@@ -104,8 +105,27 @@ class TenantAssignmentCreateSerializer(serializers.ModelSerializer):
         if not validated_data.get('property_name'):
             validated_data['property_name'] = room.location
 
-        return TenantAssignment.objects.create(
+        assignment = TenantAssignment.objects.create(
             tenant=tenant,
             room=room,
             **validated_data
         )
+
+        # Create a matching rent schedule so tenant views populate immediately.
+        tenant_client = getattr(tenant, 'client', None)
+        tenant_phone = getattr(tenant_client, 'mobile_no', '') if tenant_client else ''
+        RentSchedule.objects.create(
+            room_name=room.name,
+            tenant_name=tenant.get_full_name() or tenant.username,
+            tenant_email=tenant.email or '',
+            tenant_phone=tenant_phone or '',
+            monthly_rent=assignment.monthly_rent,
+            due_day=1,
+            start_date=assignment.start_date,
+            end_date=assignment.end_date,
+            status='active' if assignment.status == 'active' else assignment.status,
+            tenant_user=tenant,
+            assignment=assignment,
+        )
+
+        return assignment
