@@ -122,6 +122,7 @@ CORS_ALLOWED_ORIGINS = env.list(
         'http://localhost:3000',
         'http://localhost:5173',
         'https://neoscapeproperties.netlify.app',
+        'https://neoscapeproperties.co.uk',
     ]
 )
 
