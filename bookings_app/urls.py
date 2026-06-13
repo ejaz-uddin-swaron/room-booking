@@ -4,6 +4,8 @@ from .views import (
     RentScheduleView, RentScheduleDetailView, RentPaymentView, RentReminderView,
     TenantAssignmentListView, TenantAssignmentDetailView, MyAssignmentView,
     MyRentSchedulesView, MyRentRemindersView,
+    ChatChannelView, ChatMessageView, GenerateAgreementView,
+    TenancyAgreementView, TenancyAgreementDetailView, SignAgreementView,
 )
 
 urlpatterns = [
@@ -20,4 +22,17 @@ urlpatterns = [
     path('my-assignment/', MyAssignmentView.as_view(), name='my-assignment'),
     path('my-rent-schedules/', MyRentSchedulesView.as_view(), name='my-rent-schedules'),
     path('my-rent-reminders/', MyRentRemindersView.as_view(), name='my-rent-reminders'),
+    
+    # Chat channels & messages
+    path('channels/', ChatChannelView.as_view(), name='chat-channels'),
+    path('channels/<int:channel_id>/messages/', ChatMessageView.as_view(), name='chat-messages'),
+    
+    # AI Agreement Draft Generation
+    path('generate-agreement/', GenerateAgreementView.as_view(), name='generate-agreement'),
+    
+    # Tenancy Agreements & Signing
+    path('agreements/', TenancyAgreementView.as_view(), name='agreements-list'),
+    path('agreements/<int:pk>/', TenancyAgreementDetailView.as_view(), name='agreement-detail'),
+    path('agreements/<int:pk>/sign/', SignAgreementView.as_view(), name='sign-agreement'),
 ]
+

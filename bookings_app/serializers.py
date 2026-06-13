@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, RentSchedule, RentPayment, TenantAssignment
+from .models import Booking, RentSchedule, RentPayment, TenantAssignment, ChatChannel, ChatMessage, TenancyAgreement
 
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -129,3 +129,58 @@ class TenantAssignmentCreateSerializer(serializers.ModelSerializer):
         )
 
         return assignment
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    sender_role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatMessage
+        fields = ['id', 'channel', 'sender', 'sender_username', 'sender_role', 'content', 'file_url', 'file_name', 'extracted_text', 'created_at']
+        read_only_fields = ['id', 'channel', 'sender', 'created_at']
+
+
+    def get_sender_role(self, obj):
+        client = getattr(obj.sender, 'client', None)
+        return getattr(client, 'role', 'customer') if client else 'customer'
+
+
+class ChatChannelSerializer(serializers.ModelSerializer):
+    tenant_username = serializers.CharField(source='tenant.username', read_only=True)
+    admin_username = serializers.CharField(source='admin.username', read_only=True, allow_null=True)
+    latest_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatChannel
+        fields = ['id', 'property_name', 'tenant', 'tenant_username', 'admin', 'admin_username', 'created_at', 'latest_message']
+        read_only_fields = ['id', 'created_at']
+
+    def get_latest_message(self, obj):
+        msg = obj.messages.order_by('-created_at').first()
+        if msg:
+            return {
+                'id': msg.id,
+                'content': msg.content,
+                'sender_username': msg.sender.username,
+                'created_at': msg.created_at.isoformat(),
+                'file_url': msg.file_url,
+                'file_name': msg.file_name,
+            }
+        return None
+
+
+class TenancyAgreementSerializer(serializers.ModelSerializer):
+    tenant_username = serializers.CharField(source='tenant.username', read_only=True)
+
+    class Meta:
+        model = TenancyAgreement
+        fields = [
+            'id', 'channel', 'property_name', 'tenant', 'tenant_username', 'room_id',
+            'agreement_text', 'status',
+            'tenant_signed', 'tenant_signature_svg', 'tenant_signed_at',
+            'admin_signed', 'admin_signature_svg', 'admin_signed_at',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+

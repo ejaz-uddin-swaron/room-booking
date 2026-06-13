@@ -122,3 +122,56 @@ class RentPayment(models.Model):
 
     def __str__(self):
         return f"Payment {self.due_date} - {self.status}"
+
+
+class ChatChannel(models.Model):
+    property_name = models.CharField(max_length=255)
+    tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tenant_chat_channels')
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_chat_channels')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Chat for {self.property_name} ({self.tenant.username})"
+
+
+class ChatMessage(models.Model):
+    channel = models.ForeignKey(ChatChannel, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField(blank=True)
+    file_url = models.URLField(max_length=500, null=True, blank=True)
+    file_name = models.CharField(max_length=255, null=True, blank=True)
+    extracted_text = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def __str__(self):
+        return f"Message from {self.sender.username} at {self.created_at}"
+
+
+class TenancyAgreement(models.Model):
+    channel = models.ForeignKey(ChatChannel, on_delete=models.CASCADE)
+    property_name = models.CharField(max_length=255)
+    tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tenant_agreements')
+    room_id = models.IntegerField(null=True, blank=True)
+    
+    agreement_text = models.TextField() # AI Generated Markdown/HTML text
+    status = models.CharField(
+        max_length=20, 
+        choices=[('draft', 'Draft'), ('signed', 'Fully Signed'), ('rejected', 'Rejected')],
+        default='draft'
+    )
+    
+    # Signatures
+    tenant_signed = models.BooleanField(default=False)
+    tenant_signature_svg = models.TextField(null=True, blank=True) # Storing drawing path
+    tenant_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    admin_signed = models.BooleanField(default=False)
+    admin_signature_svg = models.TextField(null=True, blank=True)
+    admin_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Agreement for {self.property_name} - Status: {self.status}"
+

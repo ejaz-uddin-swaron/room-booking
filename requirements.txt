@@ -30,3 +30,8 @@ idna>=3.6
 pytz>=2024
 requests>=2.31
 urllib3>=2.0
+
+# Document Extraction & Chat AI
+pymupdf>=1.23.0
+python-docx>=1.0.0
+openai>=1.0.0

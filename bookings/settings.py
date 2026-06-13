@@ -24,6 +24,7 @@ env = environ.Env(
     SUPABASE_JWT_SECRET=(str, ''),
     SUPABASE_JWT_AUDIENCE=(str, 'authenticated'),
     SUPABASE_DOCUMENTS_BUCKET=(str, 'documents'),
+    NeoScape_Api_Key=(str, ''),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -75,6 +76,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
@@ -100,6 +104,7 @@ SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='')
 SUPABASE_JWT_AUDIENCE = env('SUPABASE_JWT_AUDIENCE', default='authenticated')
 SUPABASE_DOCUMENTS_BUCKET = env('SUPABASE_DOCUMENTS_BUCKET', default='documents')
 SUPABASE_SERVICE_ROLE_KEY = env('SUPABASE_SERVICE_ROLE_KEY', default='')
+NEOSCAPE_API_KEY = env('NeoScape_Api_Key', default='')
 
 
 MIDDLEWARE = [
