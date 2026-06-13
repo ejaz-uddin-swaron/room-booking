@@ -1,10 +1,10 @@
-# VillaEase - Room Booking Platform
+# NeoScape Properties - Room Booking Platform
 
-A comprehensive Django REST Framework-based room booking backend system for VillaEase, a modern villa and room reservation platform.
+A comprehensive Django REST Framework-based room booking backend system for NeoScape Properties, a modern villa and room reservation platform.
 
 ## 📋 Overview
 
-VillaEase is a full-featured room booking API that provides:
+NeoScape Properties is a full-featured room booking API that provides:
 - Room management with advanced filtering
 - Booking system with date validation
 - JWT-based admin authentication
@@ -322,7 +322,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - Django REST Framework documentation
-- VillaEase design specifications
+- NeoScape Properties design specifications
 - Open source community
 
 ## 📞 Support
