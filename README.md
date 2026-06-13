@@ -2,7 +2,7 @@
 
 A comprehensive Django REST Framework-based room booking backend system for NeoScape Properties, a modern villa and room reservation platform.
 
-## 📋 Overview
+## Overview
 
 NeoScape Properties is a full-featured room booking API that provides:
 - Room management with advanced filtering
@@ -12,7 +12,7 @@ NeoScape Properties is a full-featured room booking API that provides:
 - Image upload capabilities
 - Admin dashboard statistics
 
-## 🚀 Features
+## Features
 
 ### Core Functionality
 - **Room Management**: Create, read, update, and delete room listings
@@ -29,7 +29,7 @@ NeoScape Properties is a full-featured room booking API that provides:
 - CORS configuration
 - Protected admin routes
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Framework**: Django 4.x
 - **API**: Django REST Framework (DRF)
@@ -41,7 +41,7 @@ NeoScape Properties is a full-featured room booking API that provides:
 - **Server**: Gunicorn (production)
 - **Static Files**: WhiteNoise
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Python 3.8 or higher
@@ -116,7 +116,7 @@ NeoScape Properties is a full-featured room booking API that provides:
 
 The API will be available at `http://localhost:8000/`
 
-## 📚 API Documentation
+## API Documentation
 
 ### Base URL
 ```
@@ -235,7 +235,7 @@ Authorization: Bearer <jwt_token>
 
 For complete API documentation, see [API_DOCUMENTATION[1].md](./API_DOCUMENTATION[1].md)
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 room-booking/
@@ -251,7 +251,7 @@ room-booking/
 └── api.ts            # TypeScript API client definitions
 ```
 
-## 🔐 Security
+## Security
 
 - JWT tokens for secure authentication
 - Password hashing with bcrypt
@@ -260,14 +260,14 @@ room-booking/
 - SQL injection prevention through Django ORM
 - File upload validation (type and size)
 
-## 🧪 Testing
+## Testing
 
 Run tests using:
 ```bash
 python manage.py test
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Using Gunicorn
 
@@ -284,7 +284,7 @@ ALLOWED_HOSTS=yourdomain.com
 DATABASE_URL=postgresql://user:password@host:port/dbname
 ```
 
-## 📝 Database Schema
+## Database Schema
 
 ### Rooms Table
 - id, name, type, price, rating, reviews
@@ -303,7 +303,7 @@ DATABASE_URL=postgresql://user:password@host:port/dbname
 - id, username, password_hash
 - role, created_at, updated_at
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -311,28 +311,28 @@ DATABASE_URL=postgresql://user:password@host:port/dbname
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👥 Authors
+## Authors
 
 - **Ejaz Uddin Swaron** - [@ejaz-uddin-swaron](https://github.com/ejaz-uddin-swaron)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Django REST Framework documentation
 - NeoScape Properties design specifications
 - Open source community
 
-## 📞 Support
+## Support
 
 For support and queries:
 - Open an issue in the repository
 - Check the API documentation for detailed endpoint information
 - Review the codebase for implementation details
 
-## 🔄 Version History
+## Version History
 
 - **v1.0.0** - Initial release with core features
   - Room management
