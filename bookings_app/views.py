@@ -448,6 +448,23 @@ class ChatMessageView(APIView):
                 except Exception as e:
                     # Log but don't fail message creation
                     print(f"Extraction failed: {str(e)}")
+                
+                # Copy file to tenant documents if sent by an admin
+                if role == 'admin' or user.is_staff:
+                    try:
+                        from rooms.models import PropertyDocument
+                        PropertyDocument.objects.create(
+                            property_id=channel.property_name,
+                            tenant=channel.tenant,
+                            uploaded_by=user,
+                            name=msg.file_name or "Chat Attachment",
+                            file_url=msg.file_url,
+                            type='other',
+                            status='approved',
+                            admin_notes="Uploaded via Admin Chat"
+                        )
+                    except Exception as e:
+                        print(f"Failed to save document to tenant profile: {str(e)}")
                     
             return Response({'success': True, 'data': serializers.ChatMessageSerializer(msg).data}, status=201)
         return Response({'success': False, 'error': serializer.errors}, status=400)
@@ -473,12 +490,13 @@ class GenerateAgreementView(APIView):
         assignment = TenantAssignment.objects.filter(tenant=tenant, status='active').first()
         
         # Build context from assignment
-        details_context = f"Tenant Username: {tenant.username}\nTenant Email: {tenant.email}\n"
+        tenant_identifier = f"{tenant.first_name} {tenant.last_name}".strip() or tenant.email or tenant.username
+        details_context = f"Tenant: {tenant_identifier}\nTenant Email: {tenant.email}\n"
         if assignment:
             details_context += f"Property Name: {assignment.property_name}\n"
             details_context += f"Room: {assignment.room.name if assignment.room else 'N/A'}\n"
-            details_context += f"Monthly Rent: ${assignment.monthly_rent}\n"
-            details_context += f"Security Deposit: ${assignment.deposit}\n"
+            details_context += f"Monthly Rent: £{assignment.monthly_rent}\n"
+            details_context += f"Security Deposit: £{assignment.deposit}\n"
             details_context += f"Start Date: {assignment.start_date}\n"
             if assignment.end_date:
                 details_context += f"End Date: {assignment.end_date}\n"
@@ -492,7 +510,8 @@ class GenerateAgreementView(APIView):
         
         for msg in chat_messages:
             sender_label = "Admin" if msg.sender.is_staff or (hasattr(msg.sender, 'client') and msg.sender.client.role == 'admin') else "Tenant"
-            chat_log += f"[{msg.created_at.strftime('%Y-%m-%d %H:%M')}] {sender_label} ({msg.sender.username}): {msg.content}\n"
+            sender_identifier = f"{msg.sender.first_name} {msg.sender.last_name}".strip() or msg.sender.email or msg.sender.username
+            chat_log += f"[{msg.created_at.strftime('%Y-%m-%d %H:%M')}] {sender_label} ({sender_identifier}): {msg.content}\n"
             
             if msg.file_url and msg.extracted_text:
                 extracted_documents_content += f"--- Document Shared: {msg.file_name or 'unnamed'} ---\n{msg.extracted_text}\n\n"

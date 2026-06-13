@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 body = (
                     f"Dear {schedule.tenant_name},\n\n"
                     f"This is a reminder that your rent for {schedule.room_name} was due on {due_date.strftime('%B %d, %Y')}.\n"
-                    f"Amount Due: ${schedule.monthly_rent}\n\n"
+                    f"Amount Due: £{schedule.monthly_rent}\n\n"
                     f"Please log in to your tenant dashboard to review your schedule or contact management immediately.\n\n"
                     f"Thank you,\nNeoScape Properties Management"
                 )
@@ -62,7 +62,7 @@ class Command(BaseCommand):
                 body = (
                     f"Dear {schedule.tenant_name},\n\n"
                     f"This is a friendly reminder that your rent for {schedule.room_name} is due on {due_date.strftime('%B %d, %Y')}.\n"
-                    f"Amount Due: ${schedule.monthly_rent}\n\n"
+                    f"Amount Due: £{schedule.monthly_rent}\n\n"
                     f"Please log in to your tenant dashboard to review your schedule.\n\n"
                     f"Thank you,\nNeoScape Properties Management"
                 )

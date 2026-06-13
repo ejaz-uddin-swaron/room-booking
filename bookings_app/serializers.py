@@ -132,8 +132,14 @@ class TenantAssignmentCreateSerializer(serializers.ModelSerializer):
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
-    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    sender_username = serializers.SerializerMethodField()
     sender_role = serializers.SerializerMethodField()
+
+    def get_sender_username(self, obj):
+        name = f"{obj.sender.first_name} {obj.sender.last_name}".strip()
+        if name:
+            return name
+        return obj.sender.email or obj.sender.username
 
     class Meta:
         model = ChatMessage

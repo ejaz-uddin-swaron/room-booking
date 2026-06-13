@@ -96,7 +96,7 @@ class RentSchedule(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.room_name} - {self.tenant_name} (${self.monthly_rent}/month)"
+        return f"{self.room_name} - {self.tenant_name} (£{self.monthly_rent}/month)"
 
 
 class RentPayment(models.Model):
